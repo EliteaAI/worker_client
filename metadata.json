@@ -1,0 +1,6 @@
+{
+  "name": "Worker: client",
+  "version": "0.19",
+  "depends_on": [],
+  "init_after": []
+}
