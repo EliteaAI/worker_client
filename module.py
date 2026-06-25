@@ -129,6 +129,7 @@ class Module(module.ModuleModel):  # pylint: disable=R0902
         self.event_node.subscribe(
             "runtime_engine_ready", lambda *_args, **_kwargs: self.runtime_engine_ready_event.set()
         )
+        self.event_node.emit("runtime_engine_ready_request", {})
         # RpcNode
         self.rpc_node = arbiter.RpcNode(
             self.event_node,
