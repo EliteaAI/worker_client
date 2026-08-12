@@ -130,6 +130,9 @@ class Module(module.ModuleModel):  # pylint: disable=R0902
             "runtime_engine_ready", lambda *_args, **_kwargs: self.runtime_engine_ready_event.set()
         )
         self.event_node.emit("runtime_engine_ready_request", {})
+        # Stack dump: wired here, not via @web.init(), since it needs event_node started
+        self.event_node.subscribe("task_dump_request", self.stack_dump_event_request)
+        self.event_node.subscribe("task_dump_reply", self.stack_dump_event_reply)
         # RpcNode
         self.rpc_node = arbiter.RpcNode(
             self.event_node,
@@ -191,6 +194,9 @@ class Module(module.ModuleModel):  # pylint: disable=R0902
             name="restricted_ping",
         )
         self.rpc_node.stop()
+        # Stack dump
+        self.event_node.unsubscribe("task_dump_reply", self.stack_dump_event_reply)
+        self.event_node.unsubscribe("task_dump_request", self.stack_dump_event_request)
         # EventNode
         self.event_node.unsubscribe(
             "bootstrap_runtime_info_prune", self.i2p_bootstrap_runtime_info_prune
