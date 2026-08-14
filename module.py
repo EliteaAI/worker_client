@@ -162,6 +162,11 @@ class Module(module.ModuleModel):  # pylint: disable=R0902
             watcher_max_wait=3,
             stop_node_task_wait=3,
             result_max_wait=3,
+            # Retire task rows no owner still claims: this node runs no tasks, so
+            # rows learned only via bulk sync are never pruned and stay "Running"
+            reverify_orphan_tasks=self.descriptor.config.get("reverify_orphan_tasks", False),
+            orphan_grace_period=self.descriptor.config.get("orphan_grace_period", 300),
+            orphan_batch_limit=self.descriptor.config.get("orphan_batch_limit", 1000),
         )
         self.task_node.start()
         # Tool
