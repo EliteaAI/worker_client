@@ -166,7 +166,7 @@ class Module(module.ModuleModel):  # pylint: disable=R0902
             # claims: this node runs no tasks, so bulk-learned rows stay "Running"
             state_reply_authority=self.descriptor.config.get("state_reply_authority", False),
             orphan_grace_period=self.descriptor.config.get("orphan_grace_period", 300),
-            orphan_batch_limit=self.descriptor.config.get("orphan_batch_limit", 1000),
+            orphan_batch_limit=self.descriptor.config.get("orphan_batch_limit", 300),
         )
         self.task_node.start()
         # Tool
