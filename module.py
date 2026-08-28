@@ -19,6 +19,7 @@
 """ Module """
 
 import os
+import inspect
 import threading
 
 from pylon.core.tools import log  # pylint: disable=E0611,E0401
@@ -148,21 +149,40 @@ class Module(module.ModuleModel):  # pylint: disable=R0902
             name="restricted_get_admin_secret",
         )
         # TaskNode
-        self.task_node = arbiter.TaskNode(
-            self.event_node,
-            pool="indexer",
-            task_limit=0,
-            ident_prefix="indexer_",
-            multiprocessing_context="threading",
-            kill_on_stop=False,
-            task_retention_period=3600,
-            housekeeping_interval=60,
-            start_max_wait=3,
-            query_wait=3,
-            watcher_max_wait=3,
-            stop_node_task_wait=3,
-            result_max_wait=3,
-        )
+        task_node_args = {
+            "pool": "indexer",
+            "task_limit": 0,
+            "ident_prefix": "indexer_",
+            "multiprocessing_context": "threading",
+            "kill_on_stop": False,
+            "task_retention_period": 3600,
+            "housekeeping_interval": 60,
+            "start_max_wait": 3,
+            "query_wait": 3,
+            "watcher_max_wait": 3,
+            "stop_node_task_wait": 3,
+            "result_max_wait": 3,
+        }
+        # Trust a bulk reply only about rows it claims, and retire rows no owner
+        # claims: this node runs no tasks, so bulk-learned rows stay "Running"
+        orphan_reverify_args = {
+            "state_reply_authority": self.descriptor.config.get("state_reply_authority", False),
+            "orphan_grace_period": self.descriptor.config.get("orphan_grace_period", 300),
+            "orphan_batch_limit": self.descriptor.config.get("orphan_batch_limit", 300),
+        }
+        #
+        # Only pass what this arbiter actually accepts, so an older arbiter without
+        # orphan reverify support still boots. Remove once arbiter is upgraded fleet-wide
+        supported = inspect.signature(arbiter.TaskNode.__init__).parameters
+        skipped = [name for name in orphan_reverify_args if name not in supported]
+        #
+        if skipped:
+            log.warning("arbiter.TaskNode does not support %s, running without them", skipped)
+        #
+        task_node_args.update({
+            name: value for name, value in orphan_reverify_args.items() if name in supported
+        })
+        self.task_node = arbiter.TaskNode(self.event_node, **task_node_args)
         self.task_node.start()
         # Tool
         self.descriptor.register_tool("worker_client", self)
